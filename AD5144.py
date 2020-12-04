@@ -8,22 +8,22 @@ _DIG_POT_CHANNELS_MASKS = {-1: 0x08,  # -1 : All channels (When applicable)
                            1: 0x01,
                            2: 0x02,
                            3: 0x03, }
-_DIG_POT_WRITE_RDAC = [0x10, 0x00, ]
-_DIG_POT_WRITE_IN_REG = [0x20, 0x00, ]
-_DIG_POT_READ_IN_REG = [0x30, 0x00, ]
-_DIG_POT_READ_EEPROM = [0x30, 0x01, ]
-_DIG_POT_READ_CONTROL = [0x30, 0x02, ]
-_DIG_POT_READ_RDAC = [0x30, 0x03, ]
-_DIG_POT_LIN_INC = [0x40, 0x01, ]
-_DIG_POT_LIN_DEC = [0x40, 0x00, ]
-_DIG_POT_PLUS_6DB = [0x50, 0x01, ]
-_DIG_POT_MINU_6DB = [0x50, 0x00, ]
-_DIG_POT_SOFT_LRDAC = [0x60, 0x00, ]
-_DIG_POT_RDAC_TO_EEPROM = [0x70, 0x01, ]
-_DIG_POT_EEPROM_TO_RDAC = [0x70, 0x00, ]
-_DIG_POT_SET_EEPROM = [0x80, 0x00, ]
-_DIG_POT_SOFT_RST = [0xB0, 0x00, ]
-_DIG_POT_WRITE_CTRL_REG = [0xD0, 0x00, ]
+_DIG_POT_WRITE_RDAC = bytearray([0x10, 0x00, ])
+_DIG_POT_WRITE_IN_REG = bytearray([0x20, 0x00, ])
+_DIG_POT_READ_IN_REG = bytearray([0x30, 0x00, ])
+_DIG_POT_READ_EEPROM = bytearray([0x30, 0x01, ])
+_DIG_POT_READ_CONTROL = bytearray([0x30, 0x02, ])
+_DIG_POT_READ_RDAC = bytearray([0x30, 0x03, ])
+_DIG_POT_LIN_INC = bytearray([0x40, 0x01, ])
+_DIG_POT_LIN_DEC = bytearray([0x40, 0x00, ])
+_DIG_POT_PLUS_6DB = bytearray([0x50, 0x01, ])
+_DIG_POT_MINU_6DB = bytearray([0x50, 0x00, ])
+_DIG_POT_SOFT_LRDAC = bytearray([0x60, 0x00, ])
+_DIG_POT_RDAC_TO_EEPROM = bytearray([0x70, 0x01, ])
+_DIG_POT_EEPROM_TO_RDAC = bytearray([0x70, 0x00, ])
+_DIG_POT_SET_EEPROM = bytearray([0x80, 0x00, ])
+_DIG_POT_SOFT_RST = bytearray([0xB0, 0x00, ])
+_DIG_POT_WRITE_CTRL_REG = bytearray([0xD0, 0x00, ])
 
 
 class AD5144(I2CDevice):
@@ -89,7 +89,7 @@ class AD5144(I2CDevice):
         """Return the value of the Control Register Bit.
         See datasheet for more information"""
         read = self._write_then_read(_DIG_POT_READ_CONTROL, 1)
-        value = ord(read.buf[0])
+        value = read[0]
         self.__RDAC_WRITE_PROTECT = value & 0x01
         self.__EEPROM_PROGRAM_ENABLE = (value & 0x02) >> 1
         self.__GAIN_OR_POT_MODE = (value & 0x04) >> 2
@@ -106,7 +106,7 @@ class AD5144(I2CDevice):
         assert 0 <= reg_val <= 15
         _BUFFER = _DIG_POT_WRITE_CTRL_REG[:]
         _BUFFER[1] += reg_val
-        self._write_then_read(_BUFFER, 0)
+        self._write_then_read(bytearray(_BUFFER), 0)
 
     @property
     def default(self):
@@ -165,7 +165,7 @@ class AD5144(I2CDevice):
         assert channel in _DIG_POT_CHANNELS_MASKS.keys()
         _BUFFER = _DIG_POT_SOFT_LRDAC[:]
         _BUFFER[0] += _DIG_POT_CHANNELS_MASKS[channel]
-        self._write_then_read(_BUFFER, 0)
+        self._write_then_read(bytearray(_BUFFER), 0)
 
     def increase_channel(self, channel):
         """ Increase the specified channel (-1 for all channel) by one"""
@@ -226,15 +226,12 @@ class AD5144(I2CDevice):
         _BUFFER = reg_to_write[:]
         _BUFFER[0] += _DIG_POT_CHANNELS_MASKS[_channel]
         _BUFFER[1] += _value
-        self._write_then_read(_BUFFER, 0)
+        self._write_then_read(bytearray(_BUFFER), 0)
 
     def __get_single_channel(self, channel, reg_to_read):
         """ Read the value of all the specified channel for the reg_to_read register"""
         assert (channel in _DIG_POT_CHANNELS_MASKS.keys()) and channel >= 0
         _BUFFER = reg_to_read[:]
         _BUFFER[0] += _DIG_POT_CHANNELS_MASKS[channel]
-        read = self._write_then_read(_BUFFER, 1)
-        return ord(read.buf[0])
-
-
-a = AD5144()
+        read = self._write_then_read(bytearray(_BUFFER), 1)
+        return read[0]

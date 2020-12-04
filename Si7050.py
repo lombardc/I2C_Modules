@@ -1,13 +1,13 @@
 from i2c_class import *
 
 _Si7050_BITS = {14: 0, 12: 1, 13: 2, 11: 3}
-_Si7050_RESET = [0xFE]
-_Si7050_MEASURE = [0xE3]
-_Si7050_READ_USR = [0xE7]
-_Si7050_WRITE_USR = [0xE6]
-_Si7050_SN_B1 = [0xFA, 0x0F]
-_Si7050_SN_B2 = [0xFC, 0xC9]
-_Si7050_FIRMWARE = [0x84, 0xB8]
+_Si7050_RESET = bytearray([0xFE])
+_Si7050_MEASURE = bytearray([0xE3])
+_Si7050_READ_USR = bytearray([0xE7])
+_Si7050_WRITE_USR = bytearray([0xE6])
+_Si7050_SN_B1 = bytearray([0xFA, 0x0F])
+_Si7050_SN_B2 = bytearray([0xFC, 0xC9])
+_Si7050_FIRMWARE = bytearray([0x84, 0xB8])
 
 
 class Si7050(I2CDevice):
@@ -21,7 +21,7 @@ class Si7050(I2CDevice):
 
     def temp(self):
         read = self._write_then_read(_Si7050_MEASURE, 2)
-        result = (int(ord(read.buf[0])) << 8) + int(ord(read.buf[1]))
+        result = (read[0] << 8) + read[1]
         c_temp = ((175.72 * result)/65536) - 48.85
         return round(c_temp)
 
@@ -48,7 +48,7 @@ class Si7050(I2CDevice):
         d_7 = (int_nob & 2) >> 1
         d_0 = int_nob & 1
         target_val = (d_7 << 7) + (cur_val & 0x7E) + d_0
-        self._write_then_read([_Si7050_WRITE_USR[0], target_val], 0)
+        self._write_then_read(bytearray([_Si7050_WRITE_USR[0], target_val]), 0)
         assert target_val == self.__config()
 
     @property
@@ -57,10 +57,10 @@ class Si7050(I2CDevice):
             msb = self._write_then_read(_Si7050_SN_B1, 4)
             lsb = self._write_then_read(_Si7050_SN_B2, 4)
             self.__sn = ""
-            for k in range(msb.len):
-                self.__sn += format(hex(ord(msb.buf[k]))).replace("0x", "")
-            for k in range(lsb.len):
-                self.__sn += format(hex(ord(lsb.buf[k]))).replace("0x", "")
+            for k in range(len(msb)):
+                self.__sn += format(hex(msb[k])).replace("0x", "")
+            for k in range(len(lsb)):
+                self.__sn += format(hex(lsb[k])).replace("0x", "")
         return self.__sn
 
     @property
@@ -68,8 +68,8 @@ class Si7050(I2CDevice):
         if self.__firmware is None:
             firmware = self._write_then_read(_Si7050_FIRMWARE, 1)
             temp = ""
-            for k in range(firmware.len):
-                temp += format(ord(firmware.buf[k]))
+            for k in range(len(firmware)):
+                temp += format(firmware[k])
             if int(temp) == 32:
                 self.__firmware = "Firmware version 2.0"
             elif int(temp) == 255:
@@ -80,10 +80,7 @@ class Si7050(I2CDevice):
 
     def __config(self):
         config = self._write_then_read(_Si7050_READ_USR, 1)
-        conf_reg = int(format(ord(config.buf[0])))
+        conf_reg = config[0]
         self.__mode = ((conf_reg & 0x80) >> 6) + (conf_reg & 0x01)
         self.__power_watch_dog = (conf_reg & 0x04)
         return conf_reg
-
-
-a = Si7050(0x40)

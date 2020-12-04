@@ -14,14 +14,14 @@ class EEPROM64(I2CDevice):
         assert 0 <= data <= 0xFF
         _address_low = 0x00FF & address
         _address_high = (0xFF00 & address) >> 8
-        self._write_then_read([_address_high, _address_low, data], 0)
+        self._write_then_read(bytearray([_address_high, _address_low, data]), 0)
 
     def read_single(self, address):
         assert 0 <= address <= self.__max_address
         _address_low = 0x00FF & address
         _address_high = (0xFF00 & address) >> 8
-        read = self._write_then_read([_address_high, _address_low], 1)
-        return read
+        read = self._write_then_read(bytearray([_address_high, _address_low]), 1)
+        return int(read[0])
 
     def write_page(self, address_start, data):
         assert 0 <= address_start <= self.__max_address  # Check that start address is in memory range
@@ -33,17 +33,17 @@ class EEPROM64(I2CDevice):
         _BUFFER = [_address_high, _address_low, ]
         for byte in data:
             _BUFFER.append(byte)
-        self._write_then_read(_BUFFER, 0)
+        self._write_then_read(bytearray(_BUFFER), 0)
 
     def read_page(self, address_start, nob):
         assert 0 <= address_start <= self.__max_address  # Check that start address is in memory range
         assert address_start + nob - 1 <= self.__max_address  # Check that final address is in memory range
         _address_low = 0x00FF & address_start
         _address_high = (0xFF00 & address_start) >> 8
-        _read = self._write_then_read([_address_high, _address_low], nob)
+        _read = self._write_then_read(bytearray([_address_high, _address_low]), nob)
         _output = []
-        for byte in range(_read.len):
-            _output.append(ord(_read.buf[byte]))
+        for byte in _read:
+            _output.append(byte)
         return _output
 
     def read_complete(self, batch_size=0xFF):
@@ -65,4 +65,3 @@ class EEPROM64(I2CDevice):
                 _buffer = [method for x in range(nob)]
             self.write_page(i, _buffer)
             time.sleep(0.005)
-
